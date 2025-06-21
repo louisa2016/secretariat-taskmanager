@@ -273,17 +273,10 @@
 
     function sendEmail() {
       const subject = encodeURIComponent("Envoi du fichier CSV");
-      const body = encodeURIComponent("Veuillez penser à joindre le fichier CSV exporté avant d'envoyer ce mail.\n\nMerci !");
-      const mailto = `mailto:?subject=${subject}&body=${body}`;
-
-      const a = document.createElement('a');
-      a.href = mailto;
-      a.target = "_blank";
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const body = encodeURIComponent("Bonjour,\n\nMerci de bien vouloir trouver ci-joint le fichier CSV exporté.\n\n(Pensez à ajouter le fichier en pièce jointe avant d’envoyer cet email.)");
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
     }
+
   </script>
 </body>
 </html>
