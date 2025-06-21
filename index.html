@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gestion des Tâches et Absences</title>
+  <style>
+    :root {
+      --primary-color: #0a2342;
+      --accent-color: #3e92cc;
+      --bg-color: #f4f6f9;
+      --text-color: #ffffff;
+      --card-color: #ffffff;
+      --border-color: #dcdcdc;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 2em;
+      color: var(--primary-color);
+    }
+
+    h1, h2 {
+      color: var(--primary-color);
+    }
+
+    .section {
+      background: var(--card-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1em;
+      margin-bottom: 2em;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    input, select, button {
+      margin: 0.5em 0;
+      padding: 0.6em;
+      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      font-size: 1em;
+    }
+
+    button {
+      background-color: var(--primary-color);
+      color: var(--text-color);
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: var(--accent-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+    }
+
+    th, td {
+      padding: 0.75em;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: var(--primary-color);
+      color: var(--text-color);
+    }
+
+    .controls {
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+      margin-bottom: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gestion des Tâches et Absences</h1>
+
+  <div class="controls">
+    <button onclick="clearData()">🗑️ Nettoyer les données</button>
+    <input type="file" id="fileInput" accept=".csv" onchange="importCSV(event)">
+    <button onclick="sendEmail()">📧 Envoyer par mail</button>
+  </div>
+
+  <!-- Section Tâches -->
+  <div class="section">
+    <h2>Tâches</h2>
+    <form id="taskForm">
+      <input type="date" id="taskDate" required />
+      <input type="text" id="taskName" placeholder="Nom de la tâche" required />
+      <input type="text" id="taskAuthor" placeholder="Demandeur" required />
+      <select id="taskPriority">
+        <option value="">Priorité</option>
+        <option>Haute</option>
+        <option>Moyenne</option>
+        <option>Basse</option>
+      </select>
+      <select id="taskStatus">
+        <option value="">Statut</option>
+        <option>À faire</option>
+        <option>En cours</option>
+        <option>Fait</option>
+      </select>
+      <input type="text" id="taskComment" placeholder="Commentaire" />
+      <button type="submit">Ajouter la tâche</button>
+    </form>
+
+    <input type="text" id="searchInput" placeholder="Rechercher une tâche..." />
+    <button onclick="exportTableToExcel('taskTable', 'taches')">📁 Exporter Tâches vers Excel</button>
+
+
+    <table id="taskTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Tâche</th>
+          <th>Demandeur</th>
+          <th>Priorité</th>
+          <th>Statut</th>
+          <th>Commentaire</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Section Absences -->
+  <div class="section">
+    <h2>Absences du personnel</h2>
+    <form id="absenceForm">
+      <input type="date" id="absenceDate" required />
+      <input type="text" id="absenceNom" placeholder="Nom du personnel" required />
+      <input type="text" id="absenceMotif" placeholder="Motif" />
+      <input type="text" id="absenceComment" placeholder="Commentaire" />
+      <button type="submit">Ajouter une absence</button>
+    </form>
+
+    <button onclick="exportTableToExcel('absenceTable', 'absences')">📁 Exporter Absences vers Excel</button>
+
+    <table id="absenceTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Nom</th>
+          <th>Motif</th>
+          <th>Commentaire</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const taskForm = document.getElementById('taskForm');
+    const taskTableBody = document.querySelector('#taskTable tbody');
+    const searchInput = document.getElementById('searchInput');
+    const absenceForm = document.getElementById('absenceForm');
+    const absenceTableBody = document.querySelector('#absenceTable tbody');
+
+    taskForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${taskDate.value}</td><td>${taskName.value}</td><td>${taskAuthor.value}</td><td>${taskPriority.value}</td><td>${taskStatus.value}</td><td>${taskComment.value}</td>`;
+      taskTableBody.appendChild(row);
+      taskForm.reset();
+      document.getElementById('taskDate').value = new Date().toISOString().split('T')[0];
+      saveData();
+    });
+
+    absenceForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${absenceDate.value}</td><td>${absenceNom.value}</td><td>${absenceMotif.value}</td><td>${absenceComment.value}</td>`;
+      absenceTableBody.appendChild(row);
+      absenceForm.reset();
+      document.getElementById('absenceDate').value = new Date().toISOString().split('T')[0];
+      saveData();
+    });
+
+    searchInput.addEventListener('input', function () {
+      const filter = this.value.toLowerCase();
+      const rows = taskTableBody.getElementsByTagName('tr');
+      for (let row of rows) {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+      }
+    });
+
+    function exportTableToExcel(tableId, baseFilename) {
+      const table = document.getElementById(tableId);
+      let csv = '\uFEFF';
+
+      // En-têtes
+      const headers = Array.from(table.querySelectorAll('thead th')).map(th => `"${th.innerText}"`);
+      csv += headers.join(';') + '\n';
+
+      // Données du tbody
+      for (let row of table.querySelectorAll('tbody tr')) {
+        if (row.textContent.trim() === '') continue;
+        const cells = Array.from(row.cells).map(cell => `"${cell.innerText}"`);
+        csv += cells.join(';') + '\n';
+      }
+
+      const now = new Date();
+      const date = now.toISOString().slice(0, 10);
+      const time = now.getHours().toString().padStart(2, '0') + 'h' + now.getMinutes().toString().padStart(2, '0');
+      const finalFilename = `${baseFilename}_${date}_${time}.csv`;
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = finalFilename;
+      link.click();
+    }
+
+    function saveData() {
+      localStorage.setItem('taskData', taskTableBody.innerHTML);
+      localStorage.setItem('absenceData', absenceTableBody.innerHTML);
+    }
+
+    function clearData() {
+      if (confirm("Supprimer toutes les données enregistrées ?")) {
+        localStorage.removeItem('taskData');
+        localStorage.removeItem('absenceData');
+        taskTableBody.innerHTML = '';
+        absenceTableBody.innerHTML = '';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      taskTableBody.innerHTML = localStorage.getItem('taskData') || '';
+      absenceTableBody.innerHTML = localStorage.getItem('absenceData') || '';
+
+      const taskDateInput = document.getElementById('taskDate');
+      const absenceDateInput = document.getElementById('absenceDate');
+
+      const today = new Date().toISOString().split('T')[0];
+
+      if (taskDateInput.value === '') taskDateInput.value = today;
+      if (absenceDateInput.value === '') absenceDateInput.value = today;
+    });
+
+    function importCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+        // Choisir la bonne tbody selon le fichier
+        const targetBody = file.name.includes('taches') ? taskTableBody : absenceTableBody;
+        targetBody.innerHTML = '';
+
+        for (let i = 1; i < lines.length; i++) {
+          const cells = lines[i].split(';').map(cell => cell.replace(/"/g, '').trim());
+          if (cells.length === 0 || cells.every(cell => cell === '')) continue;
+          const row = document.createElement('tr');
+          row.innerHTML = cells.map(cell => `<td>${cell}</td>`).join('');
+          targetBody.appendChild(row);
+        }
+        saveData();
+      };
+      reader.readAsText(file, 'UTF-8');
+    }
+
+    function sendEmail() {
+      const subject = encodeURIComponent("Envoi du fichier CSV");
+      const body = encodeURIComponent("Veuillez penser à joindre le fichier CSV exporté avant d'envoyer ce mail.\n\nMerci !");
+      const mailto = `mailto:?subject=${subject}&body=${body}`;
+
+      const a = document.createElement('a');
+      a.href = mailto;
+      a.target = "_blank";
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  </script>
+</body>
+</html>
